@@ -1,10 +1,7 @@
 #include "Shader.h"
 
-#include <GL/glew.h>
-#include <string>
 #include <sstream>
 #include <fstream>
-#include <iostream>
 
 std::shared_ptr<Shader> Shader::fromFile(const std::string& filename) {
     Type type = Type::Undefined;

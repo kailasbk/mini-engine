@@ -23,4 +23,4 @@ add_executable(opengl_renderer main.cpp src/util/stb.cpp
         src/util/Vector.h)
 
 target_precompile_headers(opengl_renderer PRIVATE pch.h)
-target_link_libraries(opengl_renderer SDL2main SDL2 glew32 opengl32 renderapi)
+target_link_libraries(opengl_renderer SDL2main SDL2 glew32 opengl32)

@@ -10,7 +10,6 @@
 #include "src/Texture2D.h"
 #include "src/Framebuffer.h"
 #include "src/Window.h"
-#include "src/renderapi/RenderAPI.h"
 
 int main(int argc, char* argv[]) {
     int kWidth = 1280, kHeight = 720;
@@ -98,7 +97,7 @@ int main(int argc, char* argv[]) {
     glCullFace(GL_BACK);
     */
 
-    auto colorAttachment = std::make_shared<Texture2D>(kWidth / 2, kHeight / 2);
+    auto colorAttachment = std::make_shared<Texture2D>(kWidth / 2, kHeight / 2, 4);
     Framebuffer framebuffer(kWidth / 2, kHeight / 2);
     framebuffer.addColorAttachment(colorAttachment);
     framebuffer.addDepthAttachment();

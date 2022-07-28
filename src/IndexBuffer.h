@@ -9,7 +9,7 @@ public:
      *
      * @param indices the pointer to the index buffer data
      * @param indexCount the number of indices in the buffer
-     * @param indexSize the getNumIndices of each index, in bytes (1, 2, or 4)
+     * @param indexSize the size of each index, in bytes (1, 2, or 4)
      */
     IndexBuffer(const void* indices, int indexCount, int indexSize);
 
