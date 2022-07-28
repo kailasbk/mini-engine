@@ -1,10 +1,14 @@
 # ignore clion config
 /.idea
 
-# ignore build dependencies
+# ignore build output
 /cmake-build-debug/
+/cmake-build-debug-coverage/
+
+#ignore build dependencies
 /include/
 /lib/
+/bin/
 
 # ignore 3d assets
 /assets/

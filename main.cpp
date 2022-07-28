@@ -1,53 +1,22 @@
-#include <iostream>
-#include <vector>
-
-#include <SDL2/SDL.h>
-#include <GL/glew.h>
-#include <glm/glm.hpp>
-
 #include "src/IndexBuffer.h"
 #include "src/VertexBuffer.h"
 #include "src/VertexFormat.h"
 #include "src/Shader.h"
 #include "src/Program.h"
 #include "src/Math.h"
-#include "src/Camera.h"
+#include "src/Camera3D.h"
 #include "src/Grid.h"
 #include "src/ObjLoader.h"
+#include "src/Texture2D.h"
+#include "src/Framebuffer.h"
+#include "src/Window.h"
+#include "src/renderapi/RenderAPI.h"
 
 int main(int argc, char* argv[]) {
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-        std::cout << "Failed to init SDL." << std::endl;
-    }
+    int kWidth = 1280, kHeight = 720;
+    Window window(kWidth, kHeight, "OpenGL Test");
 
-    // use OpenGL 4.6 core profile
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-
-    // turn on 4x MSAA
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
-
-    const int kWidth = 1280, kHeight = 720;
-    SDL_Window* window = SDL_CreateWindow(
-            "OpenGL Renderer",
-            SDL_WINDOWPOS_UNDEFINED,
-            SDL_WINDOWPOS_UNDEFINED,
-            kWidth, kHeight,
-            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
-    );
-
-    SDL_GLContext glContext = SDL_GL_CreateContext(window);
-    SDL_GL_SetSwapInterval(1);
-
-    glewExperimental = GL_TRUE;
-    if (glewInit() != GLEW_OK) {
-        std::cout << "Failed to init GLEW." << std::endl;
-    }
-
-    // set the openGL viewport to window getNumIndices
-    glViewport(0, 0, kWidth, kHeight);
+    std::shared_ptr<Texture2D> texture = Texture2D::fromFile("../assets/lion.png");
 
     ObjLoader loader;
     loader.load("../assets/flat-monkey.obj");
@@ -58,7 +27,6 @@ int main(int argc, char* argv[]) {
         float normal[3];
     };
 
-    // vertices for the screen quad
     std::vector<Vertex> vertices;
     for (ObjLoader::Vertex objVertex : loader.getVertices()) {
         vertices.push_back({
@@ -71,10 +39,27 @@ int main(int argc, char* argv[]) {
 
     IndexBuffer indexBuffer = IndexBuffer(loader.getIndices().data(), loader.getIndices().size(), sizeof(unsigned int));
 
+    /*
+    std::vector<Vertex> vertices = {
+            {{-1.0f, +2.0f, +1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
+            {{-1.0f, +0.0f, +1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+            {{+1.0f, +0.0f, +1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+            {{+1.0f, +2.0f, +1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
+    };
+
+    VertexBuffer vertexBuffer = VertexBuffer(vertices.data(), vertices.size() * sizeof(Vertex), sizeof(Vertex));
+
+    std::vector<unsigned int> indices {
+            0, 1, 2,
+            2, 3, 0,
+    };
+    IndexBuffer indexBuffer = IndexBuffer(indices.data(), indices.size(), sizeof(unsigned int));
+    */
+
     std::vector<VertexFormat::Attribute> attributes = {
-            {0, 0, math::Float, 3, true, false, offsetof(Vertex, position)},
-            {1, 0, math::Float, 2, true, false, offsetof(Vertex, texture)},
-            {2, 0, math::Float, 3, true, false, offsetof(Vertex, normal)},
+            {0, 0, math::Float, 3, true, false, (int)offsetof(Vertex, position)},
+            {1, 0, math::Float, 2, true, false, (int)offsetof(Vertex, texture)},
+            {2, 0, math::Float, 3, true, false, (int)offsetof(Vertex, normal)},
     };
     VertexFormat format = VertexFormat(attributes);
 
@@ -86,9 +71,9 @@ int main(int argc, char* argv[]) {
     program.addShader(fragShader, Shader::Type::Fragment);
     program.link();
 
-    std::shared_ptr<Camera> orthographicCamera = Camera::makeOrthographic(8.0f, 4.5f, 0.1f, 100.0f);
-    std::shared_ptr<Camera> perspectiveCamera = Camera::makePerspective(45.0, 16.0f / 9.0f, 0.1f, 100.0f);
-    std::shared_ptr<Camera> camera = perspectiveCamera;
+    std::shared_ptr<Camera3D> orthographicCamera = Camera3D::makeOrthographic(8.0f, 4.5f, 0.1f, 100.0f);
+    std::shared_ptr<Camera3D> perspectiveCamera = Camera3D::makePerspective(45.0, 16.0f / 9.0f, 0.1f, 100.0f);
+    std::shared_ptr<Camera3D> camera = perspectiveCamera;
 
     Grid grid(5.0f, 1.0f);
 
@@ -113,7 +98,41 @@ int main(int argc, char* argv[]) {
     glCullFace(GL_BACK);
     */
 
-    glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
+    auto colorAttachment = std::make_shared<Texture2D>(kWidth / 2, kHeight / 2);
+    Framebuffer framebuffer(kWidth / 2, kHeight / 2);
+    framebuffer.addColorAttachment(colorAttachment);
+    framebuffer.addDepthAttachment();
+
+    auto interColorAttachment = std::make_shared<Texture2D>(kWidth / 2, kHeight / 2);
+    Framebuffer interFramebuffer(kWidth / 2, kHeight / 2);
+    interFramebuffer.addColorAttachment(interColorAttachment);
+
+    struct QuadVertex {
+        float position[3];
+        float texture[2];
+    };
+
+    std::vector<QuadVertex> quadVertices = {
+            {{-0.5f, +0.5f, +0.0f}, {0.0f, 1.0f}},
+            {{-0.5f, -0.5f, +0.0f}, {0.0f, 0.0f}},
+            {{+0.5f, -0.5f, +0.0f}, {1.0f, 0.0f}},
+            {{+0.5f, +0.5f, +0.0f}, {1.0f, 1.0f}},
+    };
+    VertexBuffer quadVertexBuffer = VertexBuffer(quadVertices.data(), quadVertices.size() * sizeof(QuadVertex), sizeof(QuadVertex));
+
+    std::vector<VertexFormat::Attribute> quadAttributes = {
+            {0, 0, math::Float, 3, true, false, (int)offsetof(QuadVertex, position)},
+            {1, 0, math::Float, 2, true, false, (int)offsetof(QuadVertex, texture)},
+    };
+    VertexFormat quadFormat = VertexFormat(quadAttributes);
+
+    std::shared_ptr<Shader> quadVertShader = Shader::fromFile("../shaders/ui.vert");
+    std::shared_ptr<Shader> quadFragShader = Shader::fromFile("../shaders/ui.frag");
+
+    Program quadProgram;
+    quadProgram.addShader(quadVertShader, Shader::Type::Vertex);
+    quadProgram.addShader(quadFragShader, Shader::Type::Fragment);
+    quadProgram.link();
 
     bool close = false;
     bool middleDown = false;
@@ -122,15 +141,17 @@ int main(int argc, char* argv[]) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
-                case SDL_QUIT:
-                    close = true;
-                    break;
                 case SDL_KEYDOWN:
                     std::cout << "pressed a key: " << event.key.keysym.sym << std::endl;
                     break;
                 case SDL_WINDOWEVENT:
+                    /*
                     if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
                         glViewport(0, 0, event.window.data1, event.window.data2);
+                    }
+                    */
+                    if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+                        close = true;
                     }
                     break;
                 case SDL_MOUSEBUTTONDOWN:
@@ -175,7 +196,10 @@ int main(int argc, char* argv[]) {
         // handle game logic
 
         // draw the frame
+        framebuffer.bind();
+        glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glViewport(0, 0, kWidth / 2, kHeight / 2);
 
         grid.getProgram().bind();
         grid.getProgram().setMat4("MVP", camera->getViewProjectionMatrix());
@@ -189,13 +213,24 @@ int main(int argc, char* argv[]) {
         format.bind();
         vertexBuffer.bind(0);
         indexBuffer.bind();
+        texture->bind(0);
+        glDrawElements(GL_TRIANGLES, indexBuffer.getNumIndices(), GL_UNSIGNED_INT, nullptr);
+        Framebuffer::unbind();
+
+        interFramebuffer.copyColorAttachments(framebuffer);
+
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glViewport(0, 0, kWidth, kHeight);
+        quadProgram.bind();
+        quadFormat.bind();
+        quadVertexBuffer.bind();
+        indexBuffer.bind();
+        interColorAttachment->bind(0);
         glDrawElements(GL_TRIANGLES, indexBuffer.getNumIndices(), GL_UNSIGNED_INT, nullptr);
 
-        SDL_GL_SwapWindow(window);
+        SDL_GL_SwapWindow(window.m_window);
     }
 
-    SDL_GL_DeleteContext(glContext);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
     return 0;
 }
