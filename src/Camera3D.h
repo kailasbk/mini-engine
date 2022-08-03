@@ -1,6 +1,8 @@
 #ifndef OPENGL_RENDERER_CAMERA3D_H
 #define OPENGL_RENDERER_CAMERA3D_H
 
+#include "util/Vector.h"
+#include "util/Matrix.h"
 
 class Camera3D {
 public:
@@ -31,7 +33,7 @@ public:
      *
      * @param destination the position to move the camera to
      */
-    virtual void moveTo(const glm::vec3& destination);
+    virtual void moveTo(const Vec3& destination);
 
     /**
      * Rotates the camera to look at the target position while keeping the roll the same
@@ -40,7 +42,7 @@ public:
      * @param target the position for the camera to look at
      * @param keepRoll whether to keep the roll
      */
-    virtual void lookAt(const glm::vec3& target, bool keepRoll);
+    virtual void lookAt(const Vec3& target, bool keepRoll);
 
     /**
      * Rotates the camera by the given pitch, yaw and roll from its current direction.
@@ -54,18 +56,25 @@ public:
     /**
      * @return the position of the camera
      */
-    virtual const glm::vec3& getPosition() const;
+    const Vec3& position() const {
+        return m_position;
+    };
 
     /**
      * @return the unit vector in the direction the camera is pointing
      */
-    virtual const glm::vec3& getDirection() const;
+    const Vec3& direction() const {
+        return m_direction;
+    }
 
     /**
      * @return the view projection (view then projection transform) matrix of the camera
      */
-    virtual const glm::mat4& getViewProjectionMatrix() const;
-protected:
+    const Mat4& viewProjectionMatrix() const {
+        return m_viewProjection;
+    };
+
+private:
     /**
      * Constructs the camera with the given projection matrix.
      */
@@ -77,12 +86,12 @@ protected:
      */
     void updateViewProjectionMatrix();
 
-    glm::vec3 m_position;
-    glm::vec3 m_direction;
+    Vec3 m_position;
+    Vec3 m_direction;
     float m_pitch, m_yaw, m_roll; // in radians
-    glm::mat4 m_view;
-    const glm::mat4 m_projection;
-    glm::mat4 m_viewProjection;
+    const Mat4 m_projection;
+    Mat4 m_view;
+    Mat4 m_viewProjection;
 };
 
 

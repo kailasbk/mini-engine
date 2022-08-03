@@ -1,0 +1,12 @@
+#ifndef OPENGL_RENDERER_FORMAT_H
+#define OPENGL_RENDERER_FORMAT_H
+
+
+enum class Format {
+    RGB8, RGBA8,
+    RG32F, RGB32F, RGBA32F,
+    D32F,
+};
+
+
+#endif //OPENGL_RENDERER_FORMAT_H

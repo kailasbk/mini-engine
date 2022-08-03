@@ -1,12 +1,7 @@
 #ifndef OPENGL_RENDERER_GRID_H
 #define OPENGL_RENDERER_GRID_H
 
-#include "VertexBuffer.h"
-#include "VertexFormat.h"
-#include "Shader.h"
-#include "Program.h"
-
-#include <vector>
+#include "renderapi/RenderAPI.h"
 
 class Grid {
 public:
@@ -18,20 +13,23 @@ public:
      */
     Grid(float size, float tileSize);
 
-    const VertexBuffer& getVertexBuffer();
-    const VertexFormat& getVertexFormat();
-    const Program& getProgram();
-    int getNumVertices() const;
-
-private:
-    struct GridVertex {
-        float position[3];
+    const Buffer& vertexBuffer() const {
+        return *m_buffer;
     };
 
-    Program m_program;
-    int m_numVertices;
-    std::shared_ptr<VertexBuffer> m_buffer;
-    std::shared_ptr<VertexFormat> m_format;
+    Pipeline& pipeline() const {
+        return *m_pipeline;
+    };
+
+    uint32_t numVertices() const {
+        return m_numVertices;
+    };
+
+private:
+    uint32_t m_numVertices;
+
+    std::unique_ptr<Pipeline> m_pipeline;
+    std::unique_ptr<Buffer> m_buffer;
 };
 
 

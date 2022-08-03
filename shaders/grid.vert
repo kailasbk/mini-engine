@@ -2,7 +2,7 @@
 
 layout(location = 0) in vec3 iPos;
 
-uniform mat4 MVP;
+layout(location = 0) uniform mat4 MVP;
 
 void main()
 {

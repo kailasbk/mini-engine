@@ -1,24 +1,20 @@
-#include "src/IndexBuffer.h"
-#include "src/VertexBuffer.h"
-#include "src/VertexFormat.h"
-#include "src/Shader.h"
-#include "src/Program.h"
-#include "src/Math.h"
 #include "src/Camera3D.h"
 #include "src/Grid.h"
 #include "src/ObjLoader.h"
-#include "src/Texture2D.h"
-#include "src/Framebuffer.h"
 #include "src/Window.h"
+#include "src/renderapi/RenderAPI.h"
+#include "src/util/ShaderLoader.h"
 
 int main(int argc, char* argv[]) {
     int kWidth = 1280, kHeight = 720;
     Window window(kWidth, kHeight, "OpenGL Test");
 
-    std::shared_ptr<Texture2D> texture = Texture2D::fromFile("../assets/lion.png");
+    //std::shared_ptr<Texture2D> texture = Texture2D::fromFile("../assets/lion.png");
 
     ObjLoader loader;
     loader.load("../assets/flat-monkey.obj");
+
+    RenderAPI* api = defaultRenderAPI();
 
     struct Vertex {
         float position[3];
@@ -34,9 +30,14 @@ int main(int argc, char* argv[]) {
                 {objVertex.normal.x, objVertex.normal.y, objVertex.normal.z},
         });
     }
-    VertexBuffer vertexBuffer = VertexBuffer(vertices.data(), vertices.size() * sizeof(Vertex), sizeof(Vertex));
 
-    IndexBuffer indexBuffer = IndexBuffer(loader.getIndices().data(), loader.getIndices().size(), sizeof(unsigned int));
+    std::unique_ptr<Buffer> vertexBuffer = api->createBuffer(vertices.size() * sizeof(Vertex), sizeof(Vertex));
+    std::memcpy(vertexBuffer->map(), vertices.data(), vertexBuffer->size());
+    vertexBuffer->unmap();
+
+    std::unique_ptr<Buffer> indexBuffer = api->createBuffer(loader.getIndices().size() * sizeof(uint32_t), sizeof(uint32_t));
+    std::memcpy(indexBuffer->map(), loader.getIndices().data(), indexBuffer->size());
+    indexBuffer->unmap();
 
     /*
     std::vector<Vertex> vertices = {
@@ -48,27 +49,30 @@ int main(int argc, char* argv[]) {
 
     VertexBuffer vertexBuffer = VertexBuffer(vertices.data(), vertices.size() * sizeof(Vertex), sizeof(Vertex));
 
-    std::vector<unsigned int> indices {
+    std::vector<unsigned int> quadIndices {
             0, 1, 2,
             2, 3, 0,
     };
-    IndexBuffer indexBuffer = IndexBuffer(indices.data(), indices.size(), sizeof(unsigned int));
+    IndexBuffer indexBuffer = IndexBuffer(quadIndices.data(), quadIndices.size(), sizeof(unsigned int));
     */
 
-    std::vector<VertexFormat::Attribute> attributes = {
-            {0, 0, math::Float, 3, true, false, (int)offsetof(Vertex, position)},
-            {1, 0, math::Float, 2, true, false, (int)offsetof(Vertex, texture)},
-            {2, 0, math::Float, 3, true, false, (int)offsetof(Vertex, normal)},
-    };
-    VertexFormat format = VertexFormat(attributes);
+    VertexLayout layout({
+        VertexBinding(0, vertexBuffer->stride(), {
+            VertexAttribute(0, Format::RGB32F, offsetof(Vertex, position)),
+            VertexAttribute(1, Format::RG32F, offsetof(Vertex, texture)),
+            VertexAttribute(2, Format::RGB32F, offsetof(Vertex, normal)),
+        })
+    });
 
-    std::shared_ptr<Shader> vertShader = Shader::fromFile("../shaders/shader.vert");
-    std::shared_ptr<Shader> fragShader = Shader::fromFile("../shaders/shader.frag");
+    std::unique_ptr<Shader> vertShader = shaderFromFile("../shaders/shader.vert");
+    std::unique_ptr<Shader> fragShader = shaderFromFile("../shaders/shader.frag");
 
-    Program program;
-    program.addShader(vertShader, Shader::Type::Vertex);
-    program.addShader(fragShader, Shader::Type::Fragment);
-    program.link();
+    std::unique_ptr<Pipeline> pipeline = api->createPipelineBuilder()
+            ->setTopology(Topology::Triangles)
+            ->setVertexLayout(layout)
+            ->setVertexShader(*vertShader)
+            ->setFragmentShader(*fragShader)
+            ->build();
 
     std::shared_ptr<Camera3D> orthographicCamera = Camera3D::makeOrthographic(8.0f, 4.5f, 0.1f, 100.0f);
     std::shared_ptr<Camera3D> perspectiveCamera = Camera3D::makePerspective(45.0, 16.0f / 9.0f, 0.1f, 100.0f);
@@ -80,16 +84,16 @@ int main(int argc, char* argv[]) {
     float vertAngle = 45.0f;
     float mag = 7.0f;
     float horizMag = mag * std::cos(glm::radians(vertAngle));
-    camera->moveTo(glm::vec3(
+    camera->moveTo({
             horizMag * std::cos(glm::radians(angle)),
             mag * std::sin(glm::radians(vertAngle)),
             horizMag * std::sin(glm::radians(angle))
-    ));
-    camera->lookAt(glm::vec3(0.0f), true);
+    });
+    camera->lookAt({0.0f, 0.0f, 0.0f}, true);
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    glEnable(GL_MULTISAMPLE);
+    //glEnable(GL_MULTISAMPLE);
 
     /*
     glEnable(GL_CULL_FACE);
@@ -97,14 +101,13 @@ int main(int argc, char* argv[]) {
     glCullFace(GL_BACK);
     */
 
-    auto colorAttachment = std::make_shared<Texture2D>(kWidth / 2, kHeight / 2, 4);
-    Framebuffer framebuffer(kWidth / 2, kHeight / 2);
-    framebuffer.addColorAttachment(colorAttachment);
-    framebuffer.addDepthAttachment();
-
-    auto interColorAttachment = std::make_shared<Texture2D>(kWidth / 2, kHeight / 2);
-    Framebuffer interFramebuffer(kWidth / 2, kHeight / 2);
-    interFramebuffer.addColorAttachment(interColorAttachment);
+    std::unique_ptr<Texture2D> colorAttachment = api->createTexture2D(Format::RGBA8, kWidth, kHeight);
+    std::unique_ptr<Texture2D> depthAttachment = api->createTexture2D(Format::D32F, kWidth, kHeight);
+    std::unique_ptr<Framebuffer> framebuffer = api->createFramebufferBuilder()
+            ->setDimensions(kWidth, kHeight)
+            ->setColorAttachment(std::move(colorAttachment))
+            ->setDepthAttachment(std::move(depthAttachment))
+            ->build();
 
     struct QuadVertex {
         float position[3];
@@ -117,21 +120,36 @@ int main(int argc, char* argv[]) {
             {{+0.5f, -0.5f, +0.0f}, {1.0f, 0.0f}},
             {{+0.5f, +0.5f, +0.0f}, {1.0f, 1.0f}},
     };
-    VertexBuffer quadVertexBuffer = VertexBuffer(quadVertices.data(), quadVertices.size() * sizeof(QuadVertex), sizeof(QuadVertex));
 
-    std::vector<VertexFormat::Attribute> quadAttributes = {
-            {0, 0, math::Float, 3, true, false, (int)offsetof(QuadVertex, position)},
-            {1, 0, math::Float, 2, true, false, (int)offsetof(QuadVertex, texture)},
+    std::unique_ptr<Buffer> quadVertexBuffer = api->createBuffer(quadVertices.size() * sizeof(QuadVertex), sizeof(QuadVertex));
+    std::memcpy(quadVertexBuffer->map(), quadVertices.data(), quadVertexBuffer->size());
+    quadVertexBuffer->unmap();
+
+    std::vector<uint32_t> quadIndices {
+            0, 1, 2,
+            2, 3, 0,
     };
-    VertexFormat quadFormat = VertexFormat(quadAttributes);
 
-    std::shared_ptr<Shader> quadVertShader = Shader::fromFile("../shaders/ui.vert");
-    std::shared_ptr<Shader> quadFragShader = Shader::fromFile("../shaders/ui.frag");
+    std::unique_ptr<Buffer> quadIndexBuffer = api->createBuffer(quadIndices.size() * sizeof(uint32_t), sizeof(uint32_t));
+    std::memcpy(quadIndexBuffer->map(), quadIndices.data(), quadIndexBuffer->size());
+    quadIndexBuffer->unmap();
 
-    Program quadProgram;
-    quadProgram.addShader(quadVertShader, Shader::Type::Vertex);
-    quadProgram.addShader(quadFragShader, Shader::Type::Fragment);
-    quadProgram.link();
+    VertexLayout quadLayout({
+        VertexBinding(0, quadVertexBuffer->stride(), {
+            VertexAttribute(0, Format::RGB32F, offsetof(QuadVertex, position)),
+            VertexAttribute(1, Format::RG32F, offsetof(QuadVertex, texture)),
+        })
+    });
+
+    std::shared_ptr<Shader> quadVertShader = shaderFromFile("../shaders/ui.vert");
+    std::shared_ptr<Shader> quadFragShader = shaderFromFile("../shaders/ui.frag");
+
+    std::unique_ptr<Pipeline> quadPipeline = api->createPipelineBuilder()
+            ->setTopology(Topology::Triangles)
+            ->setVertexLayout(quadLayout)
+            ->setVertexShader(*quadVertShader)
+            ->setFragmentShader(*quadFragShader)
+            ->build();
 
     bool close = false;
     bool middleDown = false;
@@ -170,63 +188,66 @@ int main(int argc, char* argv[]) {
                         if (vertAngle > 89.0f) vertAngle = 89.0f;
                         else if (vertAngle < -89.0f) vertAngle = -89.0f;
                         horizMag = mag * std::cos(glm::radians(vertAngle));
-                        camera->moveTo(glm::vec3(
+                        camera->moveTo({
                                 horizMag * std::cos(glm::radians(angle)),
                                 mag * std::sin(glm::radians(vertAngle)),
                                 horizMag * std::sin(glm::radians(angle))
-                        ));
-                        camera->lookAt(glm::vec3(0.0f), true);
+                        });
+                        camera->lookAt({0.0f, 0.0f, 0.0f}, true);
                     }
                     break;
                 case SDL_MOUSEWHEEL:
                     mag -= event.wheel.preciseY / 2;
                     if (mag < 0.1f) mag = 0.1f;
                     horizMag = mag * std::cos(glm::radians(vertAngle));
-                    camera->moveTo(glm::vec3(
+                    camera->moveTo({
                             horizMag * std::cos(glm::radians(angle)),
                             mag * std::sin(glm::radians(vertAngle)),
                             horizMag * std::sin(glm::radians(angle))
-                    ));
-                    camera->lookAt(glm::vec3(0.0f), true);
+                    });
+                    camera->lookAt({0.0f, 0.0f, 0.0f}, true);
                     break;
             }
         }
 
         // handle game logic
 
-        // draw the frame
-        framebuffer.bind();
-        glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glViewport(0, 0, kWidth / 2, kHeight / 2);
+        // render pass 1
+        api->bindFramebuffer(*framebuffer);
 
-        grid.getProgram().bind();
-        grid.getProgram().setMat4("MVP", camera->getViewProjectionMatrix());
-        grid.getVertexFormat().bind();
-        grid.getVertexBuffer().bind(0);
-        glDrawArrays(GL_LINES, 0, grid.getNumVertices());
+        api->clearAttachments(0.12f, 0.12f, 0.12f, 1.0f, 1.0f);
+        api->setViewport(0, 0, kWidth, kHeight);
 
-        program.bind();
-        program.setMat4("MVP", camera->getViewProjectionMatrix());
-        program.setVec3("LightPosition", camera->getPosition());
-        format.bind();
-        vertexBuffer.bind(0);
-        indexBuffer.bind();
-        texture->bind(0);
-        glDrawElements(GL_TRIANGLES, indexBuffer.getNumIndices(), GL_UNSIGNED_INT, nullptr);
-        Framebuffer::unbind();
+        UniformBlock uniforms({
+            MatrixUniform<4, 4>::make(camera->viewProjectionMatrix()),
+            VectorUniform<float, 3>::make(camera->position())
+        });
 
-        interFramebuffer.copyColorAttachments(framebuffer);
+        api->bindPipeline(grid.pipeline());
+        api->bindUniforms(uniforms);
+        api->bindVertexBuffer(grid.vertexBuffer(), 0);
+        api->draw(grid.numVertices(), 0);
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glViewport(0, 0, kWidth, kHeight);
-        quadProgram.bind();
-        quadFormat.bind();
-        quadVertexBuffer.bind();
-        indexBuffer.bind();
-        interColorAttachment->bind(0);
-        glDrawElements(GL_TRIANGLES, indexBuffer.getNumIndices(), GL_UNSIGNED_INT, nullptr);
+        api->bindPipeline(*pipeline);
+        api->bindUniforms(uniforms);
+        api->bindVertexBuffer(*vertexBuffer, 0);
+        api->bindIndexBuffer(*indexBuffer);
+        api->drawIndexed(indexBuffer->size() / indexBuffer->stride(), 0, 0);
+
+        // render pass 2
+        api->bindDefaultFramebuffer();
+
+        api->clearAttachments(0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+        api->setViewport(0, 0, kWidth, kHeight);
+
+        std::unique_ptr<DescriptorSet> descriptorSet = api->createDescriptorSet({{0, DescriptorType::Texture2D}});
+        descriptorSet->bindTexture2D(0, framebuffer->colorAttachment());
+
+        api->bindPipeline(*quadPipeline);
+        api->bindDescriptors(*descriptorSet);
+        api->bindVertexBuffer(*quadVertexBuffer, 0);
+        api->bindIndexBuffer(*quadIndexBuffer);
+        api->drawIndexed(6, 0, 0);
 
         SDL_GL_SwapWindow(window.m_window);
     }

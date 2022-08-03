@@ -24,6 +24,7 @@ Window::Window(int width, int height, const std::string& title)
             m_width, m_height,
             SDL_WINDOW_OPENGL // | SDL_WINDOW_RESIZABLE
     );
+
     if (m_window == nullptr) {
         throw std::runtime_error("Failed to create window.");
     }
@@ -35,6 +36,10 @@ Window::Window(int width, int height, const std::string& title)
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
         throw std::runtime_error("Failed to load OpenGL.");
+    }
+
+    if (!GLEW_ARB_clip_control) {
+        throw std::runtime_error("Failed to load required OpenGL clip control extension.");
     }
 }
 

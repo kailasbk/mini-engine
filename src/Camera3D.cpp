@@ -3,15 +3,16 @@
 #include <numbers>
 #include <glm/ext/matrix_clip_space.hpp>
 
-void Camera3D::moveTo(const glm::vec3& destination) {
+void Camera3D::moveTo(const Vec3& destination) {
     m_position = destination;
 
     updateViewProjectionMatrix();
 }
 
-void Camera3D::lookAt(const glm::vec3& target, bool keepRoll) {
-    // get the new direction vector
-    m_direction = glm::normalize(m_position - target);
+void Camera3D::lookAt(const Vec3& target, bool keepRoll) {
+    // get the new normalized direction vector
+    m_direction = m_position - target;
+    m_direction = m_direction * (1 / std::sqrtf(m_direction.dot(m_direction)));
 
     // update the angles
     if (!keepRoll) {
@@ -45,21 +46,13 @@ void Camera3D::rotate(float pitch, float yaw, float roll) {
     updateViewProjectionMatrix();
 }
 
-const glm::vec3& Camera3D::getPosition() const {
-    return m_position;
-}
-
-const glm::vec3& Camera3D::getDirection() const {
-    return m_direction;
-}
-
-const glm::mat4& Camera3D::getViewProjectionMatrix() const {
-    return m_viewProjection;
-}
-
-Camera3D::Camera3D(glm::mat4 projection)
+Camera3D::Camera3D(glm::mat4 proj)
         : m_position(0.0f, 0.0f, 0.0f), m_direction(0.0f, 0.0f, 1.0f), m_pitch(0.0f), m_yaw(0.0f), m_roll(0.0f),
-          m_projection(projection), m_view(), m_viewProjection() {
+          m_projection({Vec4(proj[0][0], proj[0][1], proj[0][2], proj[0][3]),
+                        Vec4(proj[1][0], proj[1][1], proj[1][2], proj[1][3]),
+                        Vec4(proj[2][0], proj[2][1], proj[2][2], proj[2][3]),
+                        Vec4(proj[3][0], proj[3][1], proj[3][2], proj[3][3])}),
+          m_view(), m_viewProjection() {
     updateViewProjectionMatrix();
 }
 
@@ -70,20 +63,24 @@ void Camera3D::updateViewProjectionMatrix() {
             -std::sin(m_roll),
             std::cos(m_roll) * std::sin(m_yaw)
     );
-    glm::vec3 up = glm::cross(m_direction, right);
+
+    glm::vec3 up = glm::cross({m_direction.x, m_direction.y, m_direction.z}, right);
 
     // create the translation matrix
-    glm::mat4 translate(1.0f);
-    translate[3] = glm::vec4(-m_position, 1.0f);
+    Mat4 translate({
+            Vec4(1.0f, 0.0f, 0.0f, 0.0f),
+            Vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            Vec4(0.0f, 0.0f, 1.0f, 0.0f),
+            Vec4(-m_position.x, -m_position.y, -m_position.z, 1.0f)
+    });
 
     // create the basis matrix
-    glm::mat4 basis(
-            glm::vec4(right, 0.0f),
-            glm::vec4(up, 0.0f),
-            glm::vec4(m_direction, 0.0f),
-            glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
-    );
-    basis = glm::transpose(basis);
+    Mat4 basis = Mat4({
+            Vec4(right.x, up.x, m_direction.x, 0.0f),
+            Vec4(right.y, up.y, m_direction.y, 0.0f),
+            Vec4(right.z, up.z, m_direction.z, 0.0f),
+            Vec4(0.0f, 0.0f, 0.0f, 1.0f)
+    });
 
     // calculate view and view projection matrices
     m_view = basis * translate;

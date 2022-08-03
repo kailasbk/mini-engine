@@ -6,7 +6,8 @@ in vec3 fNormal;
 
 out vec3 oColor;
 
-uniform vec3 LightPosition;
+layout(location = 1) uniform vec3 LightPosition = vec3(5.0f, 5.0f, 5.0f);
+
 layout(binding = 0) uniform sampler2D AlbedoTexture;
 
 void main()

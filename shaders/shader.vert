@@ -8,7 +8,7 @@ out vec3 fPosition;
 out vec2 fTexCoord;
 out vec3 fNormal;
 
-uniform mat4 MVP;
+layout(location = 0) uniform mat4 MVP;
 
 void main()
 {

@@ -1,9 +1,10 @@
 #include "Grid.h"
 
-#include <cmath>
-#include <iostream>
+#include "util/ShaderLoader.h"
 
 Grid::Grid(float width, float tileSize) {
+    RenderAPI* api = defaultRenderAPI();
+
     struct GridVertex {
         float position[3];
     };
@@ -27,33 +28,23 @@ Grid::Grid(float width, float tileSize) {
         lines.push_back({{negBound, 0.0f, (float)z * tileSize}});
     }
 
-    m_numVertices = (int)lines.size();
-    m_buffer = std::make_shared<VertexBuffer>(lines.data(), m_numVertices * sizeof(GridVertex), sizeof(GridVertex));
-    std::vector<VertexFormat::Attribute> gridAttributes = {
-            {0, 0, math::Float, 3, true, false, offsetof(GridVertex, position)},
-    };
-    m_format = std::make_shared<VertexFormat>(gridAttributes);
+    m_numVertices = lines.size();
+    m_buffer = api->createBuffer(m_numVertices * sizeof(GridVertex), sizeof(GridVertex));
+    std::memcpy(m_buffer->map(), lines.data(), m_buffer->size());
 
-    std::shared_ptr<Shader> gridVertShader = Shader::fromFile("../shaders/grid.vert");
-    std::shared_ptr<Shader> gridFragShader = Shader::fromFile("../shaders/grid.frag");
+    VertexLayout vertexLayout({
+        VertexBinding(0, m_buffer->size(), {
+            VertexAttribute(0, Format::RGB32F, offsetof(GridVertex, position))
+        })
+    });
 
-    m_program.addShader(gridVertShader, Shader::Type::Vertex);
-    m_program.addShader(gridFragShader, Shader::Type::Fragment);
-    m_program.link();
-}
+    std::unique_ptr<Shader> vertShader = shaderFromFile("../shaders/grid.vert");
+    std::unique_ptr<Shader> fragShader = shaderFromFile("../shaders/grid.frag");
 
-const VertexBuffer& Grid::getVertexBuffer() {
-    return *m_buffer;
-}
-
-const VertexFormat& Grid::getVertexFormat() {
-    return *m_format;
-}
-
-const Program& Grid::getProgram() {
-    return m_program;
-}
-
-int Grid::getNumVertices() const {
-    return m_numVertices;
+    m_pipeline = api->createPipelineBuilder()
+            ->setTopology(Topology::Lines)
+            ->setVertexLayout(vertexLayout)
+            ->setVertexShader(*vertShader)
+            ->setFragmentShader(*fragShader)
+            ->build();
 }
