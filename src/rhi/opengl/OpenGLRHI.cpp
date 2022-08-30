@@ -1,4 +1,4 @@
-#include "OpenGLAPI.h"
+#include "OpenGLRHI.h"
 #include "OpenGLBuffer.h"
 #include "OpenGLTexture2D.h"
 #include "OpenGLShader.h"
@@ -7,7 +7,7 @@
 #include "OpenGLUniformVisitor.h"
 #include "OpenGLDescriptorSet.h"
 
-void OpenGLAPI::copyBufferToTexture2D(Buffer& source, Texture2D& destination) {
+void OpenGLRHI::copyBufferToTexture2D(Buffer& source, Texture2D& destination) {
     OpenGLBuffer& glSource = OpenGLBuffer::from(source);
     OpenGLTexture2D& glDest = OpenGLTexture2D::from(destination);
 
@@ -26,11 +26,11 @@ void OpenGLAPI::copyBufferToTexture2D(Buffer& source, Texture2D& destination) {
     glGenerateTextureMipmap(glDest.handle());
 }
 
-void OpenGLAPI::resolveTexture2D(Texture2D& source, Texture2D& destination) {
+void OpenGLRHI::resolveTexture2D(Texture2D& source, Texture2D& destination) {
     throw std::runtime_error("resolveTexture2D() is not implemented.");
 }
 
-void OpenGLAPI::bindVertexBuffer(const Buffer& buffer, uint32_t binding) {
+void OpenGLRHI::bindVertexBuffer(const Buffer& buffer, uint32_t binding) {
     // assure that buffer stride matching the binding stride
     // assert(buffer.stride() == 0000);
 
@@ -40,7 +40,7 @@ void OpenGLAPI::bindVertexBuffer(const Buffer& buffer, uint32_t binding) {
     glBindVertexBuffer(binding, glBuffer.handle(), 0, (GLint)glBuffer.stride());
 }
 
-void OpenGLAPI::bindIndexBuffer(const Buffer& buffer) {
+void OpenGLRHI::bindIndexBuffer(const Buffer& buffer) {
     // only support buffers with stride of 2 and 4 (uint16 and uint32)
     assert(buffer.stride() == 2 || buffer.stride() == 4);
 
@@ -50,15 +50,17 @@ void OpenGLAPI::bindIndexBuffer(const Buffer& buffer) {
     m_binds.indexBuffer = std::addressof(buffer);
 }
 
-void OpenGLAPI::bindUniforms(UniformBlock& uniforms) {
+void OpenGLRHI::bindUniforms(UniformBlock& uniformBlock) {
     OpenGLUniformVisitor visitor;
-    for (int i = 0; i < uniforms.numFields(); i++) {
+
+    // each uniform accepts the vistor, which binds them
+    for (int i = 0; i < uniformBlock.numFields(); i++) {
         visitor.setLocation(i);
-        uniforms[i].bind(visitor);
+        uniformBlock[i].accept(visitor);
     }
 }
 
-void OpenGLAPI::bindDescriptors(DescriptorSet& descriptorSet) {
+void OpenGLRHI::bindDescriptors(DescriptorSet& descriptorSet) {
     OpenGLDescriptorSet& glDescriptorSet = OpenGLDescriptorSet::from(descriptorSet);
 
     for (auto& descriptorPair: glDescriptorSet.descriptors()) {
@@ -81,7 +83,7 @@ void OpenGLAPI::bindDescriptors(DescriptorSet& descriptorSet) {
     }
 }
 
-void OpenGLAPI::bindPipeline(Pipeline& pipeline) {
+void OpenGLRHI::bindPipeline(Pipeline& pipeline) {
     OpenGLPipeline& glPipeline = OpenGLPipeline::from(pipeline);
 
     for (const auto& binding: glPipeline.vertexLayout().bindings) {
@@ -110,26 +112,26 @@ void OpenGLAPI::bindPipeline(Pipeline& pipeline) {
     m_binds.pipeline = std::addressof(pipeline);
 }
 
-void OpenGLAPI::bindFramebuffer(Framebuffer& framebuffer) {
+void OpenGLRHI::bindFramebuffer(Framebuffer& framebuffer) {
     glBindFramebuffer(GL_FRAMEBUFFER, OpenGLFramebuffer::from(framebuffer).handle());
 }
 
-void OpenGLAPI::bindDefaultFramebuffer() {
+void OpenGLRHI::bindDefaultFramebuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void OpenGLAPI::setViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+void OpenGLRHI::setViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
     // TODO: atm does not match the exact spec
     glViewport((GLint)x, (GLint)y, (GLsizei)width, (GLsizei)height);
 }
 
-void OpenGLAPI::clearAttachments(float r, float g, float b, float a, float depth) {
+void OpenGLRHI::clearAttachments(float r, float g, float b, float a, float depth) {
     glClearColor(r, g, b, a);
     glClearDepth(depth);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void OpenGLAPI::draw(uint32_t vertexCount, uint32_t baseVertex) {
+void OpenGLRHI::draw(uint32_t vertexCount, uint32_t baseVertex) {
     if (m_binds.pipeline == nullptr) {
         throw std::domain_error("A pipeline must be bound for draw calls.");
     }
@@ -150,7 +152,7 @@ void OpenGLAPI::draw(uint32_t vertexCount, uint32_t baseVertex) {
     glDrawArrays(mode, (GLint)baseVertex, (GLsizei)vertexCount);
 }
 
-void OpenGLAPI::drawIndexed(uint32_t indexCount, uint32_t baseIndex, uint32_t baseVertex) {
+void OpenGLRHI::drawIndexed(uint32_t indexCount, uint32_t baseIndex, uint32_t baseVertex) {
     if (m_binds.indexBuffer == nullptr || m_binds.pipeline == nullptr) {
         throw std::domain_error("An index buffer and pipeline must be bound for indexed draw calls.");
     }

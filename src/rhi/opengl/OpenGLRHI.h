@@ -1,18 +1,31 @@
-#ifndef OPENGL_RENDERER_OPENGLAPI_H
-#define OPENGL_RENDERER_OPENGLAPI_H
+#ifndef OPENGL_RENDERER_OPENGLRHI_H
+#define OPENGL_RENDERER_OPENGLRHI_H
 
-#include "../RenderAPI.h"
+#include "../RHI.h"
 #include "../Resource.h"
 
-class OpenGLAPI : public RenderAPI {
+class OpenGLRHI : public RHI {
 public:
-    OpenGLAPI() : m_vertexArray(0), m_binds({nullptr}) {
+    OpenGLRHI() : m_vertexArray(0), m_binds{nullptr, nullptr} {
+        // load opengl pointers from glew
+        glewExperimental = GL_TRUE;
+        if (glewInit() != GLEW_OK) {
+            throw std::runtime_error("Failed to load OpenGL.");
+        }
+
+        // enable depth test and multisampling
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_MULTISAMPLE);
+
         // uses only one vertex array, changing its values
         glCreateVertexArrays(1, &m_vertexArray);
         glBindVertexArray(m_vertexArray);
+
+        // use [0, 1] z coords for NDCs
+        glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
     }
 
-    ~OpenGLAPI() override {
+    ~OpenGLRHI() override {
         glDeleteVertexArrays(1, &m_vertexArray);
     }
 
@@ -29,8 +42,8 @@ public:
 
     void bindVertexBuffer(const Buffer& buffer, uint32_t binding) override;
     void bindIndexBuffer(const Buffer& buffer) override;
-    void bindUniforms(UniformBlock& uniforms) override;
-    void bindDescriptors(DescriptorSet& descriptors) override;
+    void bindUniforms(UniformBlock& uniformBlock) override;
+    void bindDescriptors(DescriptorSet& descriptorSet) override;
     void bindPipeline(Pipeline& pipeline) override;
     void bindFramebuffer(Framebuffer& framebuffer) override;
     void bindDefaultFramebuffer() override;
@@ -50,4 +63,4 @@ private:
 };
 
 
-#endif //OPENGL_RENDERER_OPENGLAPI_H
+#endif //OPENGL_RENDERER_OPENGLRHI_H

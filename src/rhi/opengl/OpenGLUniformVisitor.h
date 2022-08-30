@@ -13,7 +13,11 @@ public:
 
     void bindFloat(const ScalarUniform<float>& uniform) override;
 
+    void bindVec2(const VectorUniform<float, 2>& uniform) override;
+
     void bindVec3(const VectorUniform<float, 3>& uniform) override;
+
+    void bindVec4(const VectorUniform<float, 4>& uniform) override;
 
     void bindMat4(const MatrixUniform<4, 4>& uniform) override;
 

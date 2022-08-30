@@ -1,7 +1,7 @@
 #include "OpenGLFramebuffer.h"
 #include "OpenGLTexture2D.h"
 
-std::unique_ptr<FramebufferBuilder> OpenGLAPI::createFramebufferBuilder() {
+std::unique_ptr<FramebufferBuilder> OpenGLRHI::createFramebufferBuilder() {
     return std::make_unique<OpenGLFramebufferBuilder>();
 }
 

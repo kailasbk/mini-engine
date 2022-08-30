@@ -1,5 +1,5 @@
 target_sources(opengl_renderer PRIVATE
-        OpenGLAPI.cpp OpenGLAPI.h
+        OpenGLRHI.cpp OpenGLRHI.h
         OpenGLBuffer.cpp OpenGLBuffer.h
         OpenGLTexture2D.cpp OpenGLTexture2D.h
         OpenGLShader.cpp OpenGLShader.h

@@ -1,14 +1,14 @@
 #ifndef OPENGL_RENDERER_DESCRIPTORSET_H
 #define OPENGL_RENDERER_DESCRIPTORSET_H
 
+#include "Texture2D.h"
+#include "Buffer.h"
 
 enum class DescriptorType {
     Texture2D, UniformBuffer, StorageBuffer
 };
 
 struct DescriptorSetBinding {
-    DescriptorSetBinding(uint32_t binding, DescriptorType type) : binding(binding), type(type) {};
-
     const uint32_t binding;
     const DescriptorType type;
 };

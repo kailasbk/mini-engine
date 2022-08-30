@@ -5,6 +5,7 @@
 template<typename T>
 class Resource {
 public:
+    // don't allow copying resources
     Resource(const Resource&) = delete;
     explicit Resource(T handle) : m_handle(handle) {}
 

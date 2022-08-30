@@ -1,3 +1,5 @@
 target_sources(opengl_renderer PRIVATE
-        Vector.h Matrix.h ShaderLoader.cpp ShaderLoader.h stb.cpp
+        Vector.h Matrix.h stb.cpp
+        ../engine/ShaderLoader.cpp ../engine/ShaderLoader.h
+        Timestep.h
         )

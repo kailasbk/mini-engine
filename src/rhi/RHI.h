@@ -1,5 +1,5 @@
-#ifndef OPENGL_RENDERER_RENDERAPI_H
-#define OPENGL_RENDERER_RENDERAPI_H
+#ifndef OPENGL_RENDERER_RHI_H
+#define OPENGL_RENDERER_RHI_H
 
 #include "Buffer.h"
 #include "Texture2D.h"
@@ -10,12 +10,12 @@
 #include "Uniform.h"
 #include "DescriptorSet.h"
 
-/*
+/**
  * Base class for platform-specific render api implementations.
  */
-class RenderAPI {
+class RHI {
 public:
-    virtual ~RenderAPI() = default;
+    virtual ~RHI() = default;
 
     // factory functions for simpler types
     /**
@@ -67,7 +67,7 @@ public:
 
     // cross-type operations
     /**
-     * Transfer pixel data from a buffer to a 2d texture, overwriting the texture completely.
+     * Transfers pixel data from a buffer to a 2d texture, overwriting the texture completely.
      * All mip-map levels are regenerated afterward.
      *
      * @param source the source buffer, must not be mapped
@@ -76,7 +76,7 @@ public:
     virtual void copyBufferToTexture2D(Buffer& source, Texture2D& destination) = 0;
 
     /**
-     * Resolve a multi-sampled 2d texture into a single-sampled texture.
+     * Resolves a multi-sampled 2d texture into a single-sampled texture.
      *
      * @param source the source multi-sampled texture
      * @param destination the destination single-sampled texture
@@ -85,7 +85,7 @@ public:
 
     // binding functions
     /**
-     * Bind a buffer for use as a vertex buffer at the given binding location.
+     * Binds a buffer for use as a vertex buffer at the given binding location.
      *
      * @param buffer the vertex buffer to bind
      * @param binding the binding location
@@ -93,15 +93,35 @@ public:
     virtual void bindVertexBuffer(const Buffer& buffer, uint32_t binding) = 0;
 
     /**
-     * Bind a buffer for use as the index buffer.
+     * Binds a buffer for use as the index buffer.
      *
      * @param buffer the index buffer to bind
      */
     virtual void bindIndexBuffer(const Buffer& buffer) = 0;
 
-    virtual void bindUniforms(UniformBlock& uniforms) = 0;
-    virtual void bindDescriptors(DescriptorSet& descriptors) = 0;
+    /**
+     * Binds a uniform block for sourcing the default uniform block for draw calls. If the uniform block's
+     * values change, this function must be called again to update the values bound. This function should be
+     * called after binding the pipeline using bindPipeline().
+     *
+     * @param uniformBlock the uniform block to bind
+     */
+    virtual void bindUniforms(UniformBlock& uniformBlock) = 0;
+
+    /**
+     * Binds a descriptor set for sourcing texture and buffer bindings for draw calls.
+     *
+     * @param descriptorSet the descriptor set to bind
+     */
+    virtual void bindDescriptors(DescriptorSet& descriptorSet) = 0;
+
+    /**
+     * Binds a pipeline for subsequent draw calls.
+     *
+     * @param pipeline the pipeline to bind
+     */
     virtual void bindPipeline(Pipeline& pipeline) = 0;
+
     virtual void bindFramebuffer(Framebuffer& framebuffer) = 0;
     virtual void bindDefaultFramebuffer() = 0;
 
@@ -145,17 +165,26 @@ public:
      * @param baseVertex the offset of the 0th vertex, in elements
      */
     virtual void drawIndexed(uint32_t indexCount, uint32_t baseIndex, uint32_t baseVertex) = 0;
+
+    /**
+     * Sets the current api to be the default render api for the platform.
+     */
+    static void create();
+
+    /**
+     * @returns the current api that is in use
+     * @throws std::runtime_error if an api has not been created
+     */
+    static RHI& current();
+
+    /**
+     * Destroys the current api.
+     */
+    static void destroy();
+
+private:
+    static std::unique_ptr<RHI> currentAPI;
 };
 
-/**
- * @returns the default render api for the platform
- */
-RenderAPI* defaultRenderAPI();
 
-/**
- * Deletes the current render api.
- */
-void deleteRenderAPI();
-
-
-#endif //OPENGL_RENDERER_RENDERAPI_H
+#endif //OPENGL_RENDERER_RHI_H

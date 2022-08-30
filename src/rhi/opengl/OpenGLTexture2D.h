@@ -1,7 +1,7 @@
 #ifndef OPENGL_RENDERER_OPENGLTEXTURE2D_H
 #define OPENGL_RENDERER_OPENGLTEXTURE2D_H
 
-#include "OpenGLAPI.h"
+#include "OpenGLRHI.h"
 
 class OpenGLTexture2D : public Texture2D, public Resource<GLuint> {
 public:

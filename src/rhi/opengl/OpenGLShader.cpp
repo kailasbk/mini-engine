@@ -1,6 +1,6 @@
 #include "OpenGLShader.h"
 
-std::unique_ptr<Shader> OpenGLAPI::createShader(const void* code, size_t codeSize, ShaderType type) {
+std::unique_ptr<Shader> OpenGLRHI::createShader(const void* code, size_t codeSize, ShaderType type) {
     GLenum glType;
     switch (type) {
         case ShaderType::Vertex:

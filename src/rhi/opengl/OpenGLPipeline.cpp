@@ -1,6 +1,6 @@
 #include "OpenGLPipeline.h"
 
-std::unique_ptr<PipelineBuilder> OpenGLAPI::createPipelineBuilder() {
+std::unique_ptr<PipelineBuilder> OpenGLRHI::createPipelineBuilder() {
     return std::make_unique<OpenGLPipelineBuilder>();
 }
 

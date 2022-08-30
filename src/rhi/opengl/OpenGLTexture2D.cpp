@@ -1,7 +1,7 @@
 #include "OpenGLTexture2D.h"
 #include "OpenGLFormat.h"
 
-std::unique_ptr<Texture2D> OpenGLAPI::createTexture2D(Format format, uint32_t width, uint32_t height) {
+std::unique_ptr<Texture2D> OpenGLRHI::createTexture2D(Format format, uint32_t width, uint32_t height) {
     GLuint handle;
     glCreateTextures(GL_TEXTURE_2D, 1, &handle);
 

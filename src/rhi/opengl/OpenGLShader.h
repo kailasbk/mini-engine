@@ -1,7 +1,7 @@
 #ifndef OPENGL_RENDERER_OPENGLSHADER_H
 #define OPENGL_RENDERER_OPENGLSHADER_H
 
-#include "OpenGLAPI.h"
+#include "OpenGLRHI.h"
 
 class OpenGLShader : public Shader, public Resource<GLuint> {
 public:

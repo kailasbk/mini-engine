@@ -1,20 +1,23 @@
-#include "src/Camera3D.h"
+#include "src/engine/Camera3D.h"
 #include "src/Grid.h"
 #include "src/ObjLoader.h"
 #include "src/Window.h"
-#include "src/renderapi/RenderAPI.h"
-#include "src/util/ShaderLoader.h"
+#include "src/rhi/RHI.h"
+#include "src/engine/ShaderLoader.h"
+#include "src/ui/Renderer.h"
+#include "src/ui/Component.h"
 
 int main(int argc, char* argv[]) {
     int kWidth = 1280, kHeight = 720;
     Window window(kWidth, kHeight, "OpenGL Test");
 
+    RHI& rhi = RHI::current();
+    std::unique_ptr<ui::Component> root;
+
     //std::shared_ptr<Texture2D> texture = Texture2D::fromFile("../assets/lion.png");
 
     ObjLoader loader;
     loader.load("../assets/flat-monkey.obj");
-
-    RenderAPI* api = defaultRenderAPI();
 
     struct Vertex {
         float position[3];
@@ -23,56 +26,42 @@ int main(int argc, char* argv[]) {
     };
 
     std::vector<Vertex> vertices;
-    for (ObjLoader::Vertex objVertex : loader.getVertices()) {
-        vertices.push_back({
-                {objVertex.position.x, objVertex.position.y, objVertex.position.z},
-                {objVertex.texCoord.u, objVertex.texCoord.v},
-                {objVertex.normal.x, objVertex.normal.y, objVertex.normal.z},
+    for (ObjLoader::Vertex objVertex: loader.getVertices()) {
+        vertices.push_back(Vertex{
+            {objVertex.position.x, objVertex.position.y, objVertex.position.z},
+            {objVertex.texCoord.u, objVertex.texCoord.v},
+            {objVertex.normal.x,   objVertex.normal.y,   objVertex.normal.z},
         });
     }
 
-    std::unique_ptr<Buffer> vertexBuffer = api->createBuffer(vertices.size() * sizeof(Vertex), sizeof(Vertex));
+    std::unique_ptr<Buffer> vertexBuffer = rhi.createBuffer(vertices.size() * sizeof(Vertex), sizeof(Vertex));
     std::memcpy(vertexBuffer->map(), vertices.data(), vertexBuffer->size());
     vertexBuffer->unmap();
 
-    std::unique_ptr<Buffer> indexBuffer = api->createBuffer(loader.getIndices().size() * sizeof(uint32_t), sizeof(uint32_t));
+    std::unique_ptr<Buffer> indexBuffer = rhi.createBuffer(loader.getIndices().size() * sizeof(uint32_t),
+                                                            sizeof(uint32_t));
     std::memcpy(indexBuffer->map(), loader.getIndices().data(), indexBuffer->size());
     indexBuffer->unmap();
 
-    /*
-    std::vector<Vertex> vertices = {
-            {{-1.0f, +2.0f, +1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
-            {{-1.0f, +0.0f, +1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-            {{+1.0f, +0.0f, +1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-            {{+1.0f, +2.0f, +1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
-    };
-
-    VertexBuffer vertexBuffer = VertexBuffer(vertices.data(), vertices.size() * sizeof(Vertex), sizeof(Vertex));
-
-    std::vector<unsigned int> quadIndices {
-            0, 1, 2,
-            2, 3, 0,
-    };
-    IndexBuffer indexBuffer = IndexBuffer(quadIndices.data(), quadIndices.size(), sizeof(unsigned int));
-    */
-
-    VertexLayout layout({
+    std::vector<VertexBinding> bindings = {
         VertexBinding(0, vertexBuffer->stride(), {
             VertexAttribute(0, Format::RGB32F, offsetof(Vertex, position)),
             VertexAttribute(1, Format::RG32F, offsetof(Vertex, texture)),
             VertexAttribute(2, Format::RGB32F, offsetof(Vertex, normal)),
         })
-    });
+    };
+
+    VertexLayout layout(std::move(bindings));
 
     std::unique_ptr<Shader> vertShader = shaderFromFile("../shaders/shader.vert");
     std::unique_ptr<Shader> fragShader = shaderFromFile("../shaders/shader.frag");
 
-    std::unique_ptr<Pipeline> pipeline = api->createPipelineBuilder()
-            ->setTopology(Topology::Triangles)
-            ->setVertexLayout(layout)
-            ->setVertexShader(*vertShader)
-            ->setFragmentShader(*fragShader)
-            ->build();
+    std::unique_ptr<Pipeline> pipeline = rhi.createPipelineBuilder()
+        ->setTopology(Topology::Triangles)
+        ->setVertexLayout(layout)
+        ->setVertexShader(*vertShader)
+        ->setFragmentShader(*fragShader)
+        ->build();
 
     std::shared_ptr<Camera3D> orthographicCamera = Camera3D::makeOrthographic(8.0f, 4.5f, 0.1f, 100.0f);
     std::shared_ptr<Camera3D> perspectiveCamera = Camera3D::makePerspective(45.0, 16.0f / 9.0f, 0.1f, 100.0f);
@@ -84,172 +73,125 @@ int main(int argc, char* argv[]) {
     float vertAngle = 45.0f;
     float mag = 7.0f;
     float horizMag = mag * std::cos(glm::radians(vertAngle));
-    camera->moveTo({
-            horizMag * std::cos(glm::radians(angle)),
-            mag * std::sin(glm::radians(vertAngle)),
-            horizMag * std::sin(glm::radians(angle))
+    camera->moveTo(Vector<float, 3>{
+        horizMag * std::cos(glm::radians(angle)),
+        mag * std::sin(glm::radians(vertAngle)),
+        horizMag * std::sin(glm::radians(angle))
     });
     camera->lookAt({0.0f, 0.0f, 0.0f}, true);
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    //glEnable(GL_MULTISAMPLE);
+    std::unique_ptr<Texture2D> colorAttachment = rhi.createTexture2D(Format::RGBA8, kWidth, kHeight);
+    std::unique_ptr<Texture2D> depthAttachment = rhi.createTexture2D(Format::D32F, kWidth, kHeight);
+    std::unique_ptr<Framebuffer> framebuffer = rhi.createFramebufferBuilder()
+        ->setDimensions(kWidth, kHeight)
+        ->setColorAttachment(std::move(colorAttachment))
+        ->setDepthAttachment(std::move(depthAttachment))
+        ->build();
 
-    /*
-    glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CCW);
-    glCullFace(GL_BACK);
-    */
-
-    std::unique_ptr<Texture2D> colorAttachment = api->createTexture2D(Format::RGBA8, kWidth, kHeight);
-    std::unique_ptr<Texture2D> depthAttachment = api->createTexture2D(Format::D32F, kWidth, kHeight);
-    std::unique_ptr<Framebuffer> framebuffer = api->createFramebufferBuilder()
-            ->setDimensions(kWidth, kHeight)
-            ->setColorAttachment(std::move(colorAttachment))
-            ->setDepthAttachment(std::move(depthAttachment))
-            ->build();
-
-    struct QuadVertex {
-        float position[3];
-        float texture[2];
-    };
-
-    std::vector<QuadVertex> quadVertices = {
-            {{-0.5f, +0.5f, +0.0f}, {0.0f, 1.0f}},
-            {{-0.5f, -0.5f, +0.0f}, {0.0f, 0.0f}},
-            {{+0.5f, -0.5f, +0.0f}, {1.0f, 0.0f}},
-            {{+0.5f, +0.5f, +0.0f}, {1.0f, 1.0f}},
-    };
-
-    std::unique_ptr<Buffer> quadVertexBuffer = api->createBuffer(quadVertices.size() * sizeof(QuadVertex), sizeof(QuadVertex));
-    std::memcpy(quadVertexBuffer->map(), quadVertices.data(), quadVertexBuffer->size());
-    quadVertexBuffer->unmap();
-
-    std::vector<uint32_t> quadIndices {
-            0, 1, 2,
-            2, 3, 0,
-    };
-
-    std::unique_ptr<Buffer> quadIndexBuffer = api->createBuffer(quadIndices.size() * sizeof(uint32_t), sizeof(uint32_t));
-    std::memcpy(quadIndexBuffer->map(), quadIndices.data(), quadIndexBuffer->size());
-    quadIndexBuffer->unmap();
-
-    VertexLayout quadLayout({
-        VertexBinding(0, quadVertexBuffer->stride(), {
-            VertexAttribute(0, Format::RGB32F, offsetof(QuadVertex, position)),
-            VertexAttribute(1, Format::RG32F, offsetof(QuadVertex, texture)),
-        })
-    });
-
-    std::shared_ptr<Shader> quadVertShader = shaderFromFile("../shaders/ui.vert");
-    std::shared_ptr<Shader> quadFragShader = shaderFromFile("../shaders/ui.frag");
-
-    std::unique_ptr<Pipeline> quadPipeline = api->createPipelineBuilder()
-            ->setTopology(Topology::Triangles)
-            ->setVertexLayout(quadLayout)
-            ->setVertexShader(*quadVertShader)
-            ->setFragmentShader(*quadFragShader)
-            ->build();
-
-    bool close = false;
     bool middleDown = false;
-    while (!close) {
+    while (!window.shouldClose()) {
+        using namespace ui;
+
         // process pending events
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
+        for (auto event : window.poll()) {
+            //root->propagateEvent(event);
             switch (event.type) {
-                case SDL_KEYDOWN:
-                    std::cout << "pressed a key: " << event.key.keysym.sym << std::endl;
-                    break;
-                case SDL_WINDOWEVENT:
-                    /*
-                    if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                        glViewport(0, 0, event.window.data1, event.window.data2);
-                    }
-                    */
-                    if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
-                        close = true;
-                    }
-                    break;
-                case SDL_MOUSEBUTTONDOWN:
-                    if (event.button.button == SDL_BUTTON_MIDDLE) {
-                        middleDown = true;
-                    }
-                    break;
-                case SDL_MOUSEBUTTONUP:
-                    if (event.button.button == SDL_BUTTON_MIDDLE) {
-                        middleDown = false;
-                    }
-                    break;
-                case SDL_MOUSEMOTION:
+                case EventType::MouseMove:
                     if (middleDown) {
-                        angle += (float)event.motion.xrel / 2;
-                        vertAngle += (float)event.motion.yrel / 2;
+                        angle += event.mouseEvent.deltaX / 2;
+                        vertAngle += event.mouseEvent.deltaY / 2;
                         if (vertAngle > 89.0f) vertAngle = 89.0f;
                         else if (vertAngle < -89.0f) vertAngle = -89.0f;
                         horizMag = mag * std::cos(glm::radians(vertAngle));
                         camera->moveTo({
-                                horizMag * std::cos(glm::radians(angle)),
-                                mag * std::sin(glm::radians(vertAngle)),
-                                horizMag * std::sin(glm::radians(angle))
-                        });
+                                           horizMag * std::cos(glm::radians(angle)),
+                                           mag * std::sin(glm::radians(vertAngle)),
+                                           horizMag * std::sin(glm::radians(angle))
+                                       });
                         camera->lookAt({0.0f, 0.0f, 0.0f}, true);
                     }
                     break;
-                case SDL_MOUSEWHEEL:
-                    mag -= event.wheel.preciseY / 2;
+                case EventType::MouseDown:
+                    if (event.mouseEvent.button == MouseButton::Middle) {
+                        middleDown = true;
+                    }
+                    break;
+                case EventType::MouseUp:
+                    if (event.mouseEvent.button == MouseButton::Middle) {
+                        middleDown = false;
+                    }
+                    break;
+                case EventType::KeyDown:
+                    std::cout << "pressed a key" << std::endl;
+                    break;
+                case EventType::KeyUp:
+                    break;
+                case EventType::Wheel:
+                    mag -= event.wheelEvent.y / 2;
                     if (mag < 0.1f) mag = 0.1f;
                     horizMag = mag * std::cos(glm::radians(vertAngle));
                     camera->moveTo({
-                            horizMag * std::cos(glm::radians(angle)),
-                            mag * std::sin(glm::radians(vertAngle)),
-                            horizMag * std::sin(glm::radians(angle))
-                    });
+                                       horizMag * std::cos(glm::radians(angle)),
+                                       mag * std::sin(glm::radians(vertAngle)),
+                                       horizMag * std::sin(glm::radians(angle))
+                                   });
                     camera->lookAt({0.0f, 0.0f, 0.0f}, true);
                     break;
             }
         }
 
         // handle game logic
+        // root->update();
 
         // render pass 1
-        api->bindFramebuffer(*framebuffer);
+        rhi.bindFramebuffer(*framebuffer);
 
-        api->clearAttachments(0.12f, 0.12f, 0.12f, 1.0f, 1.0f);
-        api->setViewport(0, 0, kWidth, kHeight);
+        rhi.clearAttachments(0.12f, 0.12f, 0.12f, 1.0f, 1.0f);
+        rhi.setViewport(0, 0, kWidth, kHeight);
 
         UniformBlock uniforms({
-            MatrixUniform<4, 4>::make(camera->viewProjectionMatrix()),
-            VectorUniform<float, 3>::make(camera->position())
-        });
+                                  MatrixUniform<4, 4>::make(camera->viewProjectionMatrix()),
+                                  VectorUniform<float, 3>::make(camera->position())
+                              });
 
-        api->bindPipeline(grid.pipeline());
-        api->bindUniforms(uniforms);
-        api->bindVertexBuffer(grid.vertexBuffer(), 0);
-        api->draw(grid.numVertices(), 0);
+        rhi.bindPipeline(grid.pipeline());
+        rhi.bindUniforms(uniforms);
+        rhi.bindVertexBuffer(grid.vertexBuffer(), 0);
+        rhi.draw(grid.numVertices(), 0);
 
-        api->bindPipeline(*pipeline);
-        api->bindUniforms(uniforms);
-        api->bindVertexBuffer(*vertexBuffer, 0);
-        api->bindIndexBuffer(*indexBuffer);
-        api->drawIndexed(indexBuffer->size() / indexBuffer->stride(), 0, 0);
+        rhi.bindPipeline(*pipeline);
+        rhi.bindUniforms(uniforms);
+        rhi.bindVertexBuffer(*vertexBuffer, 0);
+        rhi.bindIndexBuffer(*indexBuffer);
+        rhi.drawIndexed(indexBuffer->size() / indexBuffer->stride(), 0, 0);
 
         // render pass 2
-        api->bindDefaultFramebuffer();
+        rhi.bindDefaultFramebuffer();
 
-        api->clearAttachments(0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
-        api->setViewport(0, 0, kWidth, kHeight);
+        rhi.clearAttachments(0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+        rhi.setViewport(0, 0, kWidth, kHeight);
 
-        std::unique_ptr<DescriptorSet> descriptorSet = api->createDescriptorSet({{0, DescriptorType::Texture2D}});
-        descriptorSet->bindTexture2D(0, framebuffer->colorAttachment());
+        ui::Renderer renderer(1280.0f, 720.0f);
 
-        api->bindPipeline(*quadPipeline);
-        api->bindDescriptors(*descriptorSet);
-        api->bindVertexBuffer(*quadVertexBuffer, 0);
-        api->bindIndexBuffer(*quadIndexBuffer);
-        api->drawIndexed(6, 0, 0);
+        ui::RenderList list;
 
-        SDL_GL_SwapWindow(window.m_window);
+        //root->draw(list);
+
+        list.submitRect(ui::RectInfo{
+            .position{0.0f, 0.0f, +0.1f},
+            .size{1280.0f, 720.0f},
+            .color{0.3f, 0.3f, 0.3f}
+        });
+
+        list.submitImage(ui::ImageInfo{
+            .position{320.0f, 180.0f, +0.0f},
+            .size{640.0f, 360.0f},
+            .texture2D = framebuffer->colorAttachment()
+        });
+
+        renderer.render(*framebuffer, list);
+
+        window.swap();
     }
 
     return 0;

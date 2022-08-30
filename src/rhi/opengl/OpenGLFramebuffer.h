@@ -1,7 +1,7 @@
 #ifndef OPENGL_RENDERER_OPENGLFRAMEBUFFER_H
 #define OPENGL_RENDERER_OPENGLFRAMEBUFFER_H
 
-#include "OpenGLAPI.h"
+#include "OpenGLRHI.h"
 
 class OpenGLFramebuffer : public Framebuffer, public Resource<GLuint> {
 public:

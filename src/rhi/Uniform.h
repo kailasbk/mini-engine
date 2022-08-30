@@ -31,7 +31,7 @@ public:
      *
      * @param visitor the uniform visitor
      */
-    virtual void bind(UniformVisitor& visitor) const {
+    virtual void accept(UniformVisitor& visitor) const {
         throw std::runtime_error("Uniform has not implemented accepting the visitor.");
     };
 
@@ -87,7 +87,7 @@ public:
         std::memcpy(destination, m_data, sizeof(T));
     }
 
-    void bind(UniformVisitor& visitor) const override;
+    void accept(UniformVisitor& visitor) const override;
 
 };
 
@@ -125,7 +125,7 @@ public:
         std::memcpy(destination, m_data, S * sizeof(T));
     }
 
-    void bind(UniformVisitor& visitor) const override;
+    void accept(UniformVisitor& visitor) const override;
 
 };
 
@@ -165,7 +165,7 @@ public:
         }
     }
 
-    void bind(UniformVisitor& visitor) const override;
+    void accept(UniformVisitor& visitor) const override;
 
 };
 

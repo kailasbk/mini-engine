@@ -1,7 +1,7 @@
 #ifndef OPENGL_RENDERER_OPENGLPIPELINE_H
 #define OPENGL_RENDERER_OPENGLPIPELINE_H
 
-#include "OpenGLAPI.h"
+#include "OpenGLRHI.h"
 #include "OpenGLShader.h"
 
 class OpenGLPipeline : public Pipeline, public Resource<GLuint> {

@@ -1,7 +1,7 @@
 #ifndef OPENGL_RENDERER_OPENGLBUFFER_H
 #define OPENGL_RENDERER_OPENGLBUFFER_H
 
-#include "OpenGLAPI.h"
+#include "OpenGLRHI.h"
 
 class OpenGLBuffer : public Buffer, public Resource<GLuint> {
 public:
@@ -23,6 +23,8 @@ public:
     constexpr static const OpenGLBuffer& from(const Buffer& buffer) {
         return dynamic_cast<const OpenGLBuffer&>(buffer);
     }
+
+    static constexpr GLbitfield mapFlags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
 private:
     bool m_isMapped;
 };
