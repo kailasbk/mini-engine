@@ -33,6 +33,10 @@ public:
         return dynamic_cast<OpenGLDescriptorSet&>(descriptorSet);
     }
 
+    static const OpenGLDescriptorSet& from(const DescriptorSet& descriptorSet) {
+        return dynamic_cast<const OpenGLDescriptorSet&>(descriptorSet);
+    }
+
 private:
     std::map<uint32_t, DescriptorType> m_bindings;
     std::map<uint32_t, OpenGLDescriptor> m_descriptors;

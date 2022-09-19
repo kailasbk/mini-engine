@@ -17,7 +17,6 @@ class RHI {
 public:
     virtual ~RHI() = default;
 
-    // factory functions for simpler types
     /**
      * Creates a buffer object of the given size.
      *
@@ -65,7 +64,6 @@ public:
      */
     virtual std::unique_ptr<FramebufferBuilder> createFramebufferBuilder() = 0;
 
-    // cross-type operations
     /**
      * Transfers pixel data from a buffer to a 2d texture, overwriting the texture completely.
      * All mip-map levels are regenerated afterward.
@@ -83,7 +81,6 @@ public:
      */
     virtual void resolveTexture2D(Texture2D& source, Texture2D& destination) = 0;
 
-    // binding functions
     /**
      * Binds a buffer for use as a vertex buffer at the given binding location.
      *
@@ -113,14 +110,14 @@ public:
      *
      * @param descriptorSet the descriptor set to bind
      */
-    virtual void bindDescriptors(DescriptorSet& descriptorSet) = 0;
+    virtual void bindDescriptorSet(const DescriptorSet& descriptorSet) = 0;
 
     /**
      * Binds a pipeline for subsequent draw calls.
      *
      * @param pipeline the pipeline to bind
      */
-    virtual void bindPipeline(Pipeline& pipeline) = 0;
+    virtual void bindPipeline(const Pipeline& pipeline) = 0;
 
     virtual void bindFramebuffer(Framebuffer& framebuffer) = 0;
     virtual void bindDefaultFramebuffer() = 0;

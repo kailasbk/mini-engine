@@ -43,8 +43,8 @@ public:
     void bindVertexBuffer(const Buffer& buffer, uint32_t binding) override;
     void bindIndexBuffer(const Buffer& buffer) override;
     void bindUniforms(UniformBlock& uniformBlock) override;
-    void bindDescriptors(DescriptorSet& descriptorSet) override;
-    void bindPipeline(Pipeline& pipeline) override;
+    void bindDescriptorSet(const DescriptorSet& descriptorSet) override;
+    void bindPipeline(const Pipeline& pipeline) override;
     void bindFramebuffer(Framebuffer& framebuffer) override;
     void bindDefaultFramebuffer() override;
 
@@ -57,7 +57,7 @@ public:
 private:
     struct {
         const Buffer* indexBuffer;
-        Pipeline* pipeline;
+        const Pipeline* pipeline;
     } m_binds;
     GLuint m_vertexArray;
 };

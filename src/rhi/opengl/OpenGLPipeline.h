@@ -13,12 +13,16 @@ public:
         glDeleteProgram(m_handle);
     }
 
-    const VertexLayout& vertexLayout() {
+    const VertexLayout& vertexLayout() const {
         return m_vertexLayout;
     }
 
     constexpr static OpenGLPipeline& from(Pipeline& pipeline) {
         return dynamic_cast<OpenGLPipeline&>(pipeline);
+    }
+
+    constexpr static const OpenGLPipeline& from(const Pipeline& pipeline) {
+        return dynamic_cast<const OpenGLPipeline&>(pipeline);
     }
 
 private:

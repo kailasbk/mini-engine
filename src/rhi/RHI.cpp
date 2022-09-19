@@ -9,7 +9,7 @@ void RHI::create() {
 
 RHI& RHI::current() {
     if (currentAPI == nullptr) {
-        throw std::runtime_error("there is not current render api.");
+        throw std::runtime_error("There is not current render api.");
     }
 
     return *currentAPI;

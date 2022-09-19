@@ -60,8 +60,8 @@ void OpenGLRHI::bindUniforms(UniformBlock& uniformBlock) {
     }
 }
 
-void OpenGLRHI::bindDescriptors(DescriptorSet& descriptorSet) {
-    OpenGLDescriptorSet& glDescriptorSet = OpenGLDescriptorSet::from(descriptorSet);
+void OpenGLRHI::bindDescriptorSet(const DescriptorSet& descriptorSet) {
+    const OpenGLDescriptorSet& glDescriptorSet = OpenGLDescriptorSet::from(descriptorSet);
 
     for (auto& descriptorPair: glDescriptorSet.descriptors()) {
         uint32_t binding = descriptorPair.first;
@@ -83,8 +83,8 @@ void OpenGLRHI::bindDescriptors(DescriptorSet& descriptorSet) {
     }
 }
 
-void OpenGLRHI::bindPipeline(Pipeline& pipeline) {
-    OpenGLPipeline& glPipeline = OpenGLPipeline::from(pipeline);
+void OpenGLRHI::bindPipeline(const Pipeline& pipeline) {
+    const OpenGLPipeline& glPipeline = OpenGLPipeline::from(pipeline);
 
     for (const auto& binding: glPipeline.vertexLayout().bindings) {
         for (auto attribute: binding.attributes) {
@@ -103,6 +103,9 @@ void OpenGLRHI::bindPipeline(Pipeline& pipeline) {
                     break;
                 case Format::RGBA32F:
                     glVertexAttribFormat(attribute.location, 4, GL_FLOAT, GL_FALSE, attribute.offset);
+                    break;
+                default:
+                    throw std::invalid_argument("the vertex attribute type is not supported");
                     break;
             }
         }
