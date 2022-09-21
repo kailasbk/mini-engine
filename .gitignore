@@ -1,12 +1,11 @@
-# ignore clion config
+# ignore ide config
 /.idea
+/.vscode
 
 # ignore build output
-/cmake-build-debug/
-/cmake-build-debug-coverage/
+/cmake-build-*
 
-#ignore build dependencies
-/include/
+# ignore binary dependencies
 /lib/
 /bin/
 
