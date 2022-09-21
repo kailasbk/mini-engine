@@ -1,9 +1,9 @@
 #include "Grid.h"
 
-#include "util/ShaderLoader.h"
+#include "ShaderLoader.h"
 
-Grid::Grid(float width, float tileSize) {
-    RenderAPI* api = defaultRenderAPI();
+StaticMesh Grid::make(float width, float tileSize) {
+    RHI& rhi = RHI::current();
 
     struct GridVertex {
         float position[3];
@@ -28,23 +28,31 @@ Grid::Grid(float width, float tileSize) {
         lines.push_back({{negBound, 0.0f, (float)z * tileSize}});
     }
 
-    m_numVertices = lines.size();
-    m_buffer = api->createBuffer(m_numVertices * sizeof(GridVertex), sizeof(GridVertex));
-    std::memcpy(m_buffer->map(), lines.data(), m_buffer->size());
+    uint32_t m_numVertices = lines.size();
+    auto buffer = rhi.createBuffer(m_numVertices * sizeof(GridVertex), sizeof(GridVertex));
+    std::memcpy(buffer->map(), lines.data(), buffer->size());
 
-    VertexLayout vertexLayout({
-        VertexBinding(0, m_buffer->size(), {
+    std::vector<VertexBinding> bindings = {
+        VertexBinding(0, buffer->size(), {
             VertexAttribute(0, Format::RGB32F, offsetof(GridVertex, position))
         })
-    });
+    };
+
+    VertexLayout vertexLayout(std::move(bindings));
 
     std::unique_ptr<Shader> vertShader = shaderFromFile("../shaders/grid.vert");
     std::unique_ptr<Shader> fragShader = shaderFromFile("../shaders/grid.frag");
 
-    m_pipeline = api->createPipelineBuilder()
-            ->setTopology(Topology::Lines)
-            ->setVertexLayout(vertexLayout)
-            ->setVertexShader(*vertShader)
-            ->setFragmentShader(*fragShader)
-            ->build();
+    auto pipeline = rhi.createPipelineBuilder()
+        ->setTopology(Topology::Lines)
+        ->setVertexLayout(vertexLayout)
+        ->setVertexShader(*vertShader)
+        ->setFragmentShader(*fragShader)
+        ->build();
+
+    return StaticMesh{
+        .vertexBuffer = std::move(buffer),
+        .indexBuffer = nullptr,
+        .material = std::make_shared<Material>(std::move(pipeline))
+    };
 }

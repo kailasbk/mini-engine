@@ -27,7 +27,7 @@ public:
     /**
      * Constructs a mesh loader.
      */
-    ObjLoader();
+    ObjLoader() : m_numVertices(0), m_numIndices(0) {}
 
     /**
      * Loads a .obj mesh from the file with the given string.

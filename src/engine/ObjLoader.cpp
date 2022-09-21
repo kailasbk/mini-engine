@@ -3,15 +3,8 @@
 #include <fstream>
 #include <iostream>
 #include <map>
-#include <SDL2/SDL_timer.h>
-
-ObjLoader::ObjLoader()
-        : m_numVertices(0), m_numIndices(0) {
-}
 
 void ObjLoader::load(const std::string& filename) {
-    std::uint64_t start = SDL_GetPerformanceCounter();
-
     m_numVertices = 0;
     m_vertices.clear();
     m_positions.clear();
@@ -220,8 +213,6 @@ void ObjLoader::load(const std::string& filename) {
             std::cout << "skipping mats for now" << std::endl;
         }
     }
-    double taken = (double)(SDL_GetPerformanceCounter() - start) / (double)SDL_GetPerformanceFrequency();
-    std::cout << "time taken: " << taken << std::endl;
 }
 
 const std::vector<ObjLoader::Vertex>& ObjLoader::getVertices() {
