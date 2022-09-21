@@ -1,5 +1,6 @@
 // standard library includes
 #include <cstdint>
+#include <cassert>
 #include <iostream>
 #include <array>
 #include <vector>
@@ -13,8 +14,7 @@
 // graphics library includes
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
-#include <glm/glm.hpp>
 
 // stb library includes
-#include <stb_image.h>
-#include <stb_truetype.h>
+#include "stb/stb_image.h"
+#include "stb/stb_truetype.h"

@@ -107,6 +107,16 @@ struct Vector<T, 3> {
     }
 
     /**
+     * Calculates the vector cross product of the vector with another vector.
+     *
+     * @param other the other vector
+     * @returns the cross product of the two vectors
+     */
+    constexpr Vector<T, 3> cross(const Vector<T, 3>& other) const {
+        return {y * other.z - z * other.y, -(x * other.z - z * other.x), x * other.y - y * other.x};
+    }
+
+    /**
      * @returns the number of components in the vector
      */
     constexpr unsigned int components() const {

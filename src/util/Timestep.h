@@ -9,8 +9,21 @@ using Duration = std::chrono::duration<double>;
 
 struct Timestep {
 public:
-    const Duration deltaT; // interval in seconds
-    const Timestamp t; // absolute timestamp from clock
+    Duration deltaT; // interval in seconds
+    Timestamp t; // absolute timestamp from clock
+
+    /**
+     * Generates a timestep to be used to start a chain of subsequent timesteps.
+     *
+     * @returns the timestep
+     */
+    static Timestep start() {
+        Timestamp t = std::chrono::steady_clock::now();
+        return Timestep{
+            .deltaT = Duration::zero(),
+            .t = t,
+        };
+    }
 
     /**
      * Generates a timestep that is the measured from given the previous timestep to the current time.
@@ -25,9 +38,6 @@ public:
             .t = t,
         };
     }
-
-private:
-    static const Timestamp t_0;
 };
 
 

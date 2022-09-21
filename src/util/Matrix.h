@@ -12,7 +12,23 @@ public:
     static_assert(2 <= C && C <= 4, "Matrix must have between 2 and 4 columns.");
     static_assert(2 <= R && R <= 4, "Matrix must have between 2 and 4 rows.");
 
+    /**
+     * Constructs a matrix with all zeros.
+     */
     constexpr Matrix() : m_cols() {};
+
+    /**
+     * Constructs a matrix with given value along the diagonal.
+     *
+     * @param diag the value along the diagonal
+     */
+    explicit constexpr Matrix(float diag)
+        : m_cols() {
+        for (int i = 0; i < C && i < R; i++) {
+            m_cols[i][i] = diag;
+        }
+    }
+
     explicit constexpr Matrix(std::array<Vector<float, R>, C> cols) : m_cols(std::move(cols)) {}
 
     constexpr Vector<float, R>& operator[](uint32_t index) {
