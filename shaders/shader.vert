@@ -8,12 +8,12 @@ out vec3 fPosition;
 out vec2 fTexCoord;
 out vec3 fNormal;
 
-layout(location = 0) uniform mat4 MVP;
+layout(location = 0) uniform mat4 ModelViewProjection;
 
 void main()
 {
     fPosition = vPosition;
     fTexCoord = vTexCoord;
     fNormal = vNormal;
-    gl_Position = MVP * vec4(vPosition, 1.0f);
+    gl_Position = ModelViewProjection * vec4(vPosition, 1.0f);
 }
