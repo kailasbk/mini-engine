@@ -1,25 +1,19 @@
-#ifndef OPENGL_RENDERER_COLUMN_H
-#define OPENGL_RENDERER_COLUMN_H
+#pragma once
 
 #include "Container.h"
 
 namespace ui {
 
-    class Column : public Container {
-    public:
-        Column(float width, std::vector<std::unique_ptr<Component>> children)
-            : Container(std::move(children)), m_desiredWidth(width) {}
+class Column : public Container {
+public:
+    Column(float width, std::vector<std::unique_ptr<Component>> children);
 
-        Size resize(float widthBound, float heightBound) override;
+    Size resize(float width_bound, float height_bound) override;
+    void reposition(float x, float y) override;
+    void draw(RenderList& render_list) const override;
 
-        void reposition(float x, float y) override;
-
-        void draw(RenderList& renderList) const override;
-
-    private:
-        float m_desiredWidth;
-    };
+private:
+    float desired_width_;
+};
 
 } // ui
-
-#endif //OPENGL_RENDERER_COLUMN_H

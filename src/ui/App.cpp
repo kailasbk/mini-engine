@@ -1,4 +1,5 @@
 #include "App.h"
+
 #include "../util/angle.h"
 #include "../engine/StaticMeshLoader.h"
 #include "../engine/Grid.h"
@@ -96,39 +97,39 @@ namespace ui {
     }
 
     Size App::resize(float maxWidth, float maxHeight) {
-        m_width = maxWidth;
-        m_height = maxHeight;
-        return Size{m_height, m_width};
+        width_ = maxWidth;
+        height_ = maxHeight;
+        return Size{height_, width_};
     }
 
     void App::reposition(float x, float y) {
-        m_x = x;
-        m_y = y;
+        x_ = x;
+        y_ = y;
     }
 
-    void App::handleEvent(Event& event) {
+    void App::handle_event(Event& event) {
         switch (event.type) {
             case EventType::MouseMove:
                 if (m_middleDown) {
-                    m_angle += event.mouseEvent.deltaX / 2;
-                    m_vertAngle += event.mouseEvent.deltaY / 2;
+                    m_angle += event.mouse_event.delta_x / 2;
+                    m_vertAngle += event.mouse_event.delta_y / 2;
                     if (m_vertAngle > 89.0f) m_vertAngle = 89.0f;
                     else if (m_vertAngle < -89.0f) m_vertAngle = -89.0f;
                     updateCamera();
                 }
                 break;
             case EventType::MouseDown:
-                if (event.mouseEvent.button == MouseButton::Middle) {
+                if (event.mouse_event.button == MouseButton::Middle) {
                     m_middleDown = true;
                 }
                 break;
             case EventType::MouseUp:
-                if (event.mouseEvent.button == MouseButton::Middle) {
+                if (event.mouse_event.button == MouseButton::Middle) {
                     m_middleDown = false;
                 }
                 break;
             case EventType::KeyDown:
-                switch (event.keyEvent.key) {
+                switch (event.key_event.key) {
                     case Key::W:
                         m_keys.w = true;
                         break;
@@ -147,7 +148,7 @@ namespace ui {
                 std::cout << "pressed a key down" << std::endl;
                 break;
             case EventType::KeyUp:
-                switch (event.keyEvent.key) {
+                switch (event.key_event.key) {
                     case Key::W:
                         m_keys.w = false;
                         break;
@@ -166,7 +167,7 @@ namespace ui {
                 std::cout << "unpressed a key" << std::endl;
                 break;
             case EventType::Wheel:
-                m_mag -= event.wheelEvent.y / 2;
+                m_mag -= event.wheel_event.y / 2;
                 if (m_mag < 0.1f) m_mag = 0.1f;
                 updateCamera();
                 break;
@@ -183,16 +184,16 @@ namespace ui {
 
         updateRenderSystem();
 
-        renderList.submitRect(ui::RectInfo{
+        renderList.submit_rect(ui::RectInfo{
             .position{0.0f, 0.0f, +0.1f},
-            .size{m_width, m_height},
+            .size{width_, height_},
             .color{0.1f, 0.1f, 0.1f}
         });
 
-        renderList.submitImage(ui::ImageInfo{
+        renderList.submit_image(ui::ImageInfo{
             .position{5.0f, 5.0f, +0.0f},
             .size{1280.0f, 720.0f},
-            .texture2D = m_framebuffer->colorAttachment()
+            .texture2d = m_framebuffer->colorAttachment()
         });
     }
 

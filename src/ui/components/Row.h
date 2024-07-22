@@ -1,5 +1,4 @@
-#ifndef OPENGL_RENDERER_ROW_H
-#define OPENGL_RENDERER_ROW_H
+#pragma once
 
 #include "Container.h"
 
@@ -8,18 +7,14 @@ namespace ui {
     class Row : public Container {
     public:
         Row(float height, std::vector<std::unique_ptr<Component>> children)
-            : Container(std::move(children)), m_desiredHeight(height) {}
+            : Container(std::move(children)), desired_height_(height) {}
 
-        Size resize(float widthBound, float heightBound) override;
-
+        Size resize(float width_bound, float height_bound) override;
         void reposition(float x, float y) override;
-
-        void draw(RenderList& renderList) const override;
+        void draw(RenderList& render_list) const override;
 
     private:
-        float m_desiredHeight;
+        float desired_height_;
     };
 
 } // ui
-
-#endif //OPENGL_RENDERER_ROW_H

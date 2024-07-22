@@ -1,5 +1,4 @@
-#ifndef OPENGL_RENDERER_TEXT_H
-#define OPENGL_RENDERER_TEXT_H
+#pragma once
 
 #include "../Component.h"
 
@@ -7,19 +6,14 @@ namespace ui {
 
     class Text : public Component {
     public:
-        explicit Text(std::string text) : m_text(std::move(text)) {}
+        explicit Text(std::string text) : text_(std::move(text)) {}
 
-        void draw(RenderList& renderList) const override;
-
-        Size resize(float widthBound, float heightBound) override;
-
+        void draw(RenderList& render_list) const override;
+        Size resize(float width_bound, float height_bound) override;
         void reposition(float x, float y) override;
 
     private:
-        std::string m_text;
+        std::string text_;
     };
 
 }
-
-
-#endif //OPENGL_RENDERER_TEXT_H

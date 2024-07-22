@@ -15,7 +15,7 @@ namespace ui {
         ~App() override = default;
 
         void update(const Timestep& timestep) override;
-        void handleEvent(Event& event) override;
+        void handle_event(Event& event) override;
         Size resize(float maxWidth, float maxHeight) override;
         void reposition(float x, float y) override;
         void draw(RenderList& renderList) const override;

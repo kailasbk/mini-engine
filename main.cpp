@@ -2,22 +2,23 @@
 #include "src/ui/Renderer.h"
 #include "src/ui/App.h"
 
-int main(int argc, char* argv[]) {
-    int kWidth = 1290, kHeight = 730;
-    ui::Window window(kWidth, kHeight, "OpenGL Test");
+int main(int argc, char* argv[])
+{
+    int width = 1290, height = 730;
+    ui::Window window(width, height, "OpenGL Test");
 
     std::unique_ptr<ui::Component> app = std::make_unique<ui::App>();
 
-    ui::Renderer renderer(1290.0f, 730.0f);
+    ui::Renderer renderer((float)width, (float)height);
     app->reposition(0, 0);
     app->resize((float)window.dimensions().x, (float)window.dimensions().y);
 
     Timestep timestep = Timestep::start();
-    while (!window.shouldClose()) {
+    while (!window.should_close()) {
 
         // process pending events
         for (auto event: window.poll()) {
-            app->propagateEvent(event);
+            app->propagate_event(event);
         }
 
         // update given time passed

@@ -1,5 +1,4 @@
-#ifndef OPENGL_RENDERER_RENDERLIST_H
-#define OPENGL_RENDERER_RENDERLIST_H
+#pragma once
 
 #include "../util/Vector.h"
 #include "../rhi/Texture2D.h"
@@ -29,106 +28,104 @@
 
 namespace ui {
 
+/**
+ * Position in screen coordinates, where (0, 0) is the top-left corner.
+ */
+struct Position {
+    float x;
+    float y;
+    float z;
+};
+
+/**
+ * Size in screen coordinates, where width expands to the right and height to the bottom.
+ */
+struct Size {
+    float width;
+    float height;
+};
+
+/**
+ * Color in RGBA format. All component and alpha values are in [0, 1].
+ */
+struct Color {
+    float r;
+    float g;
+    float b;
+    float a = 1.0f;
+};
+
+struct ImageInfo {
+    Position position;
+    Size size;
+    Texture2D& texture2d;
+};
+
+struct TextInfo {
+    Position position;
+    std::string text;
+};
+
+struct RectInfo {
+    Position position;
+    Size size;
+    Color color;
+};
+
+class RenderList {
+public:
     /**
-     * Position in screen coordinates, where (0, 0) is the top-left corner.
+     * Submits an image to be rendered.
+     *
+     * @param image_info the information describing the image
      */
-    struct Position {
-        float x;
-        float y;
-        float z;
-    };
+    void submit_image(const ImageInfo& image_info) {
+        images_.push_back(image_info);
+    }
 
     /**
-     * Size in screen coordinates, where width expands to the right and height to the bottom.
+     * @returns a vector of submitted images to be rendered
      */
-    struct Size {
-        float width;
-        float height;
-    };
+    const std::vector<ImageInfo>& images() const {
+        return images_;
+    }
 
     /**
-     * Color in RGBA format. All component and alpha values are in [0, 1].
+     * Submits a string of text to be rendered.
+     *
+     * @param text_info the information describing the text
      */
-    struct Color {
-        float r;
-        float g;
-        float b;
-        float a = 1.0f;
-    };
+    void submit_text(const TextInfo& text_info) {
+        texts_.push_back(text_info);
+    }
 
-    struct ImageInfo {
-        Position position;
-        Size size;
-        Texture2D& texture2D;
-    };
+    /**
+     * @returns a vector of submitted text segments to be rendered
+     */
+    const std::vector<TextInfo>& texts() const {
+        return texts_;
+    }
 
-    struct TextInfo {
-        Position position;
-        std::string text;
-    };
+    /**
+     * Submits a colored rectangle to be rendered.
+     *
+     * @param rect_info the information describing the rectangle
+     */
+    void submit_rect(const RectInfo& rect_info) {
+        rects_.push_back(rect_info);
+    }
 
-    struct RectInfo {
-        Position position;
-        Size size;
-        Color color;
-    };
+    /**
+     * @returns a vector of submitted rectangles to be rendered
+     */
+    const std::vector<RectInfo>& rects() const {
+        return rects_;
+    }
 
-    class RenderList {
-    public:
-        /**
-         * Submits an image to be rendered.
-         *
-         * @param imageInfo the information describing the image
-         */
-        void submitImage(const ImageInfo& imageInfo) {
-            m_images.push_back(imageInfo);
-        }
-
-        /**
-         * @returns a vector of submitted images to be rendered
-         */
-        const std::vector<ImageInfo>& images() const {
-            return m_images;
-        }
-
-        /**
-         * Submits a string of text to be rendered.
-         *
-         * @param textInfo the information describing the text
-         */
-        void submitText(const TextInfo& textInfo) {
-            m_texts.push_back(textInfo);
-        }
-
-        /**
-         * @returns a vector of submitted text segments to be rendered
-         */
-        const std::vector<TextInfo>& texts() const {
-            return m_texts;
-        }
-
-        /**
-         * Submits a colored rectangle to be rendered.
-         * 
-         * @param rectInfo the information describing the rectangle
-         */
-        void submitRect(const RectInfo& rectInfo) {
-            m_rects.push_back(rectInfo);
-        }
-
-        /**
-         * @returns a vector of submitted rectangles to be rendered
-         */
-        const std::vector<RectInfo>& rects() const {
-            return m_rects;
-        }
-
-    private:
-        std::vector<ImageInfo> m_images;
-        std::vector<TextInfo> m_texts;
-        std::vector<RectInfo> m_rects;
-    };
+private:
+    std::vector<ImageInfo> images_;
+    std::vector<TextInfo> texts_;
+    std::vector<RectInfo> rects_;
+};
 
 } // ui
-
-#endif //OPENGL_RENDERER_RENDERLIST_H

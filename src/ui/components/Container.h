@@ -1,24 +1,20 @@
-#ifndef OPENGL_RENDERER_CONTAINER_H
-#define OPENGL_RENDERER_CONTAINER_H
+#pragma once
 
 #include "../Component.h"
 
 namespace ui {
 
-    class Container : public Component {
-    public:
-        explicit Container(std::vector<std::unique_ptr<Component>> children)
-            : m_children(std::move(children)), m_focused(nullptr) {}
+class Container : public Component {
+public:
+    explicit Container(std::vector<std::unique_ptr<Component>> children)
+        : children_(std::move(children)), focused_(nullptr) {}
 
-        void update(const Timestep& timestep) override;
+    void update(const Timestep& timestep) override;
+    Component* select_child(const Event& event) const override;
 
-        Component* selectChild(const Event& event) const override;
-
-    protected:
-        std::vector<std::unique_ptr<Component>> m_children;
-        Component* m_focused;
-    };
+protected:
+    std::vector<std::unique_ptr<Component>> children_;
+    Component* focused_;
+};
 
 } // ui
-
-#endif //OPENGL_RENDERER_CONTAINER_H
